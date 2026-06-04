@@ -74,6 +74,10 @@
 					font-weight: 400;
 					opacity: 0.6;
 				}
+				.brand-version {
+					font-weight: 400;
+					opacity: 0.4;
+				}
 
 				.controls {
 					display: flex;
@@ -184,6 +188,13 @@
 					box-shadow: inset 0 0 0 2px currentColor;
 					opacity: 0.55;
 				}
+				.cell--selected::after {
+					content: "";
+					position: absolute;
+					inset: 0;
+					box-shadow: inset 0 0 0 3px currentColor;
+					opacity: 0.9;
+				}
 				.cell-title {
 					position: absolute;
 					top: 12px;
@@ -254,6 +265,7 @@
 				<div class="toolbar-inner">
 					<div class="brand">
 						WHL <span class="brand-product">Colour Palette</span> <span class="brand-model">– OKLCH</span>
+					<span class="brand-version" id="brandVersion"></span>
 					</div>
 					<div class="controls">
 						<div class="control">
@@ -357,6 +369,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
+			const version = "0.1.0"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -407,17 +420,16 @@
 			// ----------------------------------------------------------------
 			// Palette — hue families as columns, lightness steps as rows.
 			// Black (the toolbar) is rung 0, white the top rung; the steps are
-			// the evenly spaced rungs between them.
+			// the evenly spaced rungs between them. A colour has exactly one
+			// lightness number — its true OKLCH lightness percent — used in
+			// the cell title, the CSS variable, the JSON key, and the filename.
 			// ----------------------------------------------------------------
-			function stepLabels() {
-				const count = settings.lightnessCount
-				const labels = []
-				for (let i = 0; i < count; i++) labels.push(Math.round(((count - i) * 100) / count))
-				return labels
-			}
-
 			function lightnessAt(index) {
 				return (index + 1) / (settings.lightnessCount + 1)
+			}
+
+			function lightnessPercentAt(index) {
+				return Math.round(lightnessAt(index) * 100)
 			}
 
 			function chromaAt(lightness) {
@@ -427,38 +439,65 @@
 			}
 
 			function buildFamilies() {
-				const labels = stepLabels()
 				const families = []
 				for (let i = 0; i < settings.hueCount; i++) {
 					const hue = (settings.hueStart + (i * 360) / settings.hueCount) % 360
-					const cells = labels.map((label, index) => {
+					const cells = []
+					for (let index = 0; index < settings.lightnessCount; index++) {
 						const lightness = lightnessAt(index)
 						const rendered = oklchToHex(lightness, chromaAt(lightness), hue)
-						return {
-							label,
+						cells.push({
+							label: lightnessPercentAt(index),
 							hex: rendered.hex,
 							clamped: rendered.clamped,
 							// the title IS the colour, in standard CSS oklch() notation
-							title: `${Math.round(lightness * 100)}% ${rendered.chroma.toFixed(3)} ${Math.round(hue)}`,
-						}
-					})
+							title: `${lightnessPercentAt(index)}% ${rendered.chroma.toFixed(3)} ${Math.round(hue)}`,
+						})
+					}
 					families.push({ hue, cells })
 				}
 				return families
 			}
 
 			// ----------------------------------------------------------------
+			// Selection — a whole column (hue family) or row (lightness step)
+			// can be selected for export. Shift-click selects a column,
+			// alt-click a row, Escape clears.
+			// ----------------------------------------------------------------
+			let selection = null
+
+			function sameSelection(a, b) {
+				return a && b && a.kind === b.kind && a.index === b.index
+			}
+
+			function isSelected(columnIndex, rowIndex) {
+				if (!selection) return false
+				if (selection.kind === "column") return selection.index === columnIndex
+				return selection.index === rowIndex
+			}
+
+			function toggleSelection(next, announcement) {
+				selection = sameSelection(selection, next) ? null : next
+				showToast(selection ? announcement : "selection cleared")
+				render()
+			}
+
+			// ----------------------------------------------------------------
 			// Rendering
 			// ----------------------------------------------------------------
-			function colourCell(cell, column, row, ink) {
+			function colourCell(cell, columnIndex, rowIndex, ink) {
 				const element = document.createElement("div")
-				element.className = "cell"
-				element.style.cssText = `background:${cell.hex}; grid-row:${row}; grid-column:${column}; color:${ink}`
+				element.className = isSelected(columnIndex, rowIndex) ? "cell cell--selected" : "cell"
+				element.style.cssText = `background:${cell.hex}; grid-row:${rowIndex + 2}; grid-column:${columnIndex + 1}; color:${ink}`
 				element.innerHTML = `<span class="cell-title" style="color:${ink}">${cell.title}</span>
 				<span class="cell-hex" style="color:${ink}">${cell.hex.toUpperCase()}</span>
 				${cell.clamped ? `<span class="cell-flag" style="color:${ink}">◇</span>` : ""}`
-				element.title = `${cell.title} — ${cell.hex.toUpperCase()} — click to copy`
-				element.onclick = () => copyToClipboard(cell.hex.toUpperCase())
+				element.title = `${cell.title} — ${cell.hex.toUpperCase()} — click copies · shift-click selects the column · alt-click selects the row`
+				element.onclick = function (event) {
+					if (event.shiftKey) toggleSelection({ kind: "column", index: columnIndex }, "column selected — SVG exports it")
+					else if (event.altKey) toggleSelection({ kind: "row", index: rowIndex }, "row selected — SVG exports it")
+					else copyToClipboard(cell.hex.toUpperCase())
+				}
 				return element
 			}
 
@@ -474,7 +513,8 @@
 			}
 
 			function render() {
-				elementById("lightnessRange").value = settings.lightnessCount
+				elementById("brandVersion").textContent = version
+			elementById("lightnessRange").value = settings.lightnessCount
 				elementById("chromaRange").value = settings.chroma
 				elementById("huesRange").value = settings.hueCount
 				elementById("lightnessValue").textContent = settings.lightnessCount
@@ -495,10 +535,16 @@
 				swatch.style.gridTemplateColumns = `repeat(${families.length}, minmax(${minimumWidth}px, 1fr))`
 				swatch.style.gridTemplateRows = `repeat(${settings.lightnessCount + 2}, ${rowHeight}px)`
 
+				// a selection that outlived a slider change may point past the grid
+				if (selection) {
+					const limit = selection.kind === "column" ? families.length : settings.lightnessCount
+					if (selection.index >= limit) selection = null
+				}
+
 				swatch.appendChild(whiteRowCell(settings.lightnessCount + 2))
 				families.forEach((family, columnIndex) => {
 					family.cells.forEach((cell, rowIndex) => {
-						swatch.appendChild(colourCell(cell, columnIndex + 1, rowIndex + 2, inkFor(cell.hex)))
+						swatch.appendChild(colourCell(cell, columnIndex, rowIndex, inkFor(cell.hex)))
 					})
 				})
 
@@ -533,11 +579,10 @@
 			}
 
 			function exportCss() {
-				const labels = stepLabels()
 				let css = ":root {\n  /* WHL Colour Palette */\n  --whl-black: #000000;\n  --whl-white: #ffffff;\n"
 				buildFamilies().forEach((family) => {
-					family.cells.forEach((cell, index) => {
-						css += `  --whl-${hueToken(family.hue)}-${labels[index]}: ${cell.hex};\n`
+					family.cells.forEach((cell) => {
+						css += `  --whl-${hueToken(family.hue)}-${cell.label}: ${cell.hex};\n`
 					})
 				})
 				css += "}"
@@ -553,28 +598,57 @@
 				copyToClipboard(["#000000", ...lines, "#FFFFFF"].join("\n").toUpperCase(), "hex list copied")
 			}
 
-			function exportSvg() {
-				const families = buildFamilies()
-				const cellSize = 100
-				const bandHeight = 62
-				const width = families.length * cellSize
-				const height = bandHeight * 2 + settings.lightnessCount * cellSize
-				let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n`
-				svg += `  <rect x="0" y="0" width="${width}" height="${bandHeight}" fill="#000000"/>\n`
-				svg += `  <rect x="0" y="${height - bandHeight}" width="${width}" height="${bandHeight}" fill="#ffffff"/>\n`
-				families.forEach((family, columnIndex) => {
-					family.cells.forEach((cell, rowIndex) => {
-						svg += `  <rect x="${columnIndex * cellSize}" y="${bandHeight + rowIndex * cellSize}" width="${cellSize}" height="${cellSize}" fill="${cell.hex}"/>\n`
+			function svgRectangles(cells) {
+				// cells laid out by grid position; every cell is 2:1, like on screen
+				const cellWidth = 200
+				const cellHeight = 100
+				let body = ""
+				cells.forEach(function (cell) {
+					body += `  <rect x="${cell.column * cellWidth}" y="${cell.row * cellHeight}" width="${cellWidth}" height="${cellHeight}" fill="${cell.hex}"/>\n`
+				})
+				const columns = Math.max(...cells.map((cell) => cell.column)) + 1
+				const rows = Math.max(...cells.map((cell) => cell.row)) + 1
+				const width = columns * cellWidth
+				const height = rows * cellHeight
+				return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${body}</svg>`
+			}
+
+			function svgCells(families) {
+				if (selection && selection.kind === "column") {
+					const family = families[selection.index]
+					return {
+						name: `whl_colour_palette_hue_${hueToken(family.hue)}.svg`,
+						cells: family.cells.map((cell, rowIndex) => ({ column: 0, row: rowIndex, hex: cell.hex })),
+					}
+				}
+				if (selection && selection.kind === "row") {
+					return {
+						name: `whl_colour_palette_lightness_${lightnessPercentAt(selection.index)}.svg`,
+						cells: families.map((family, columnIndex) => ({ column: columnIndex, row: 0, hex: family.cells[selection.index].hex })),
+					}
+				}
+				const cells = [{ column: 0, row: 0, hex: "#000000" }, { column: 0, row: settings.lightnessCount + 1, hex: "#ffffff" }]
+				families.forEach(function (family, columnIndex) {
+					if (columnIndex > 0) {
+						cells.push({ column: columnIndex, row: 0, hex: "#000000" })
+						cells.push({ column: columnIndex, row: settings.lightnessCount + 1, hex: "#ffffff" })
+					}
+					family.cells.forEach(function (cell, rowIndex) {
+						cells.push({ column: columnIndex, row: rowIndex + 1, hex: cell.hex })
 					})
 				})
-				svg += "</svg>"
-				const blob = new Blob([svg], { type: "image/svg+xml" })
+				return { name: "whl_colour_palette.svg", cells }
+			}
+
+			function exportSvg() {
+				const choice = svgCells(buildFamilies())
+				const blob = new Blob([svgRectangles(choice.cells)], { type: "image/svg+xml" })
 				const link = document.createElement("a")
 				link.href = URL.createObjectURL(blob)
-				link.download = "whl_colour_palette.svg"
+				link.download = choice.name
 				link.click()
 				URL.revokeObjectURL(link.href)
-				showToast("whl_colour_palette.svg downloaded")
+				showToast(choice.name + " downloaded")
 			}
 
 			// ----------------------------------------------------------------
@@ -597,6 +671,13 @@
 			elementById("exportHex").addEventListener("click", exportHex)
 			elementById("exportSvg").addEventListener("click", exportSvg)
 			window.addEventListener("resize", render)
+			window.addEventListener("keydown", function (event) {
+				if (event.key === "Escape" && selection) {
+					selection = null
+					showToast("selection cleared")
+					render()
+				}
+			})
 
 			render()
 		</script>
