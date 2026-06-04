@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>WHL Colour Palette</title>
+		<style>
+			@layer palette;
+
+			@layer palette {
+				/* --- Tokens --- */
+				:root {
+					--base-font:
+						"Berkeley Mono Variable", "Berkeley Mono", "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SF Mono",
+						Menlo, monospace;
+					--base-font-size: 12px;
+					--base-space: 16px;
+					--base-ink: #fff;
+					--base-ink-muted: #9a9a94;
+					--cell-min-width: 150px;
+					--z-toolbar: 6;
+					--z-toast: 20;
+				}
+
+				* {
+					box-sizing: border-box;
+					margin: 0;
+					padding: 0;
+				}
+				html,
+				body {
+					height: 100%;
+				}
+				body {
+					font-family: var(--base-font);
+					font-size: var(--base-font-size);
+					-webkit-font-smoothing: antialiased;
+					overflow: hidden;
+					display: flex;
+					flex-direction: column;
+					background: #fff;
+				}
+
+				/* --- Toolbar — doubles as the black row of the swatch --- */
+				.toolbar {
+					grid-column: 1 / -1;
+					grid-row: 1;
+					background: #000;
+					color: var(--base-ink);
+					position: sticky;
+					top: 0;
+					z-index: var(--z-toolbar);
+					min-width: 0;
+				}
+				.toolbar-inner {
+					position: sticky;
+					left: 0;
+					max-width: 100vw;
+					height: 100%;
+					display: flex;
+					align-items: center;
+					gap: 22px;
+					padding: 0 var(--base-space);
+				}
+				.brand {
+					font-weight: 600;
+					letter-spacing: 0.01em;
+					white-space: nowrap;
+				}
+				.brand-product {
+					font-weight: 500;
+				}
+				.brand-model {
+					font-weight: 400;
+					opacity: 0.6;
+				}
+
+				.controls {
+					display: flex;
+					align-items: center;
+					gap: 24px;
+					flex-wrap: wrap;
+					flex: 1;
+					justify-content: center;
+				}
+				.control {
+					display: flex;
+					align-items: center;
+					gap: 10px;
+					width: clamp(200px, 22vw, 280px);
+				}
+				.control label {
+					font-weight: 400;
+					color: var(--base-ink-muted);
+					white-space: nowrap;
+				}
+				.control-value {
+					font-weight: 400;
+					color: var(--base-ink);
+					min-width: 34px;
+					text-align: right;
+				}
+				.control input[type="range"] {
+					flex: 1;
+					width: auto;
+				}
+
+				input[type="range"] {
+					-webkit-appearance: none;
+					appearance: none;
+					width: 100%;
+					height: 16px;
+					background: transparent;
+					cursor: pointer;
+					display: block;
+				}
+				input[type="range"]::-webkit-slider-runnable-track {
+					height: 1px;
+					background: rgba(255, 255, 255, 0.3);
+				}
+				input[type="range"]::-webkit-slider-thumb {
+					-webkit-appearance: none;
+					width: 13px;
+					height: 13px;
+					border-radius: 50%;
+					background: #fff;
+					margin-top: -6px;
+				}
+				input[type="range"]::-moz-range-track {
+					height: 1px;
+					background: rgba(255, 255, 255, 0.3);
+				}
+				input[type="range"]::-moz-range-thumb {
+					width: 13px;
+					height: 13px;
+					border: none;
+					border-radius: 50%;
+					background: #fff;
+				}
+
+				.exports {
+					display: flex;
+					gap: 18px;
+					flex-wrap: wrap;
+				}
+				.export-button {
+					font-family: inherit;
+					font-size: inherit;
+					font-weight: 400;
+					line-height: 1;
+					padding: 0;
+					border: none;
+					background: none;
+					color: var(--base-ink);
+					opacity: 0.8;
+					cursor: pointer;
+					white-space: nowrap;
+				}
+				.export-button:hover {
+					opacity: 1;
+					text-decoration: underline;
+					text-underline-offset: 3px;
+				}
+
+				/* --- The swatch grid — fills the viewport, scrolls past minimums --- */
+				.swatch {
+					flex: 1;
+					display: grid;
+					min-height: 0;
+					overflow: auto;
+				}
+
+				.cell {
+					position: relative;
+					cursor: pointer;
+					min-width: 0;
+					min-height: 0;
+					overflow: hidden;
+				}
+				.cell:hover::after {
+					content: "";
+					position: absolute;
+					inset: 0;
+					box-shadow: inset 0 0 0 2px currentColor;
+					opacity: 0.55;
+				}
+				.cell-title {
+					position: absolute;
+					top: 12px;
+					left: var(--base-space);
+					right: 10px;
+					font-weight: 300;
+					letter-spacing: 0.01em;
+					line-height: 1.3;
+					white-space: nowrap;
+					overflow: hidden;
+					pointer-events: none;
+				}
+				.cell-hex {
+					position: absolute;
+					top: 31px;
+					left: var(--base-space);
+					font-weight: 300;
+					opacity: 0.78;
+					pointer-events: none;
+				}
+				.cell-flag {
+					position: absolute;
+					bottom: 10px;
+					right: 12px;
+					font-size: 10px;
+					opacity: 0.5;
+					pointer-events: none;
+				}
+				.cell-note {
+					position: sticky;
+					left: var(--base-space);
+					align-self: center;
+					font-weight: 300;
+					color: rgba(0, 0, 0, 0.55);
+					white-space: nowrap;
+					overflow: hidden;
+					max-width: calc(100vw - 2 * var(--base-space));
+					pointer-events: none;
+				}
+
+				/* --- Toast --- */
+				.toast {
+					position: fixed;
+					bottom: 26px;
+					left: 50%;
+					transform: translateX(-50%) translateY(16px);
+					z-index: var(--z-toast);
+					background: #161616;
+					color: #fff;
+					font-weight: 600;
+					padding: 10px 18px;
+					border-radius: 10px;
+					opacity: 0;
+					pointer-events: none;
+					transition: all 0.25s ease;
+				}
+				.toast--visible {
+					opacity: 1;
+					transform: translateX(-50%) translateY(0);
+				}
+
+			}
+		</style>
+	</head>
+	<body>
+		<div class="swatch" id="swatch">
+			<div class="toolbar" id="toolbar">
+				<div class="toolbar-inner">
+					<div class="brand">
+						WHL <span class="brand-product">Colour Palette</span> <span class="brand-model">– OKLCH</span>
+					</div>
+					<div class="controls">
+						<div class="control">
+							<label for="lightnessRange">lightness</label><span class="control-value" id="lightnessValue"></span>
+							<input type="range" id="lightnessRange" min="5" max="100" step="1" />
+						</div>
+						<div class="control">
+							<label for="chromaRange">chroma</label><span class="control-value" id="chromaValue"></span>
+							<input type="range" id="chromaRange" min="0" max="0.37" step="0.002" />
+						</div>
+						<div class="control">
+							<label for="huesRange">hues</label><span class="control-value" id="huesValue"></span>
+							<input type="range" id="huesRange" min="3" max="100" step="1" />
+						</div>
+					</div>
+					<div class="exports">
+						<button class="export-button" id="exportCss" title="copy all colours as CSS variables">CSS</button>
+						<button class="export-button" id="exportJson" title="copy the whole palette as JSON">JSON</button>
+						<button class="export-button" id="exportHex" title="copy a plain list of hex codes">HEX</button>
+						<button class="export-button" id="exportSvg" title="download the swatch as SVG (no text)">SVG</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="toast" id="toast"></div>
+
+		<script>
+			// ----------------------------------------------------------------
+			// OKLCH ⇄ sRGB (round-trip verified)
+			// ----------------------------------------------------------------
+			function srgbToLinear(channel) {
+				return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4)
+			}
+
+			function linearToSrgb(channel) {
+				return channel <= 0.0031308 ? 12.92 * channel : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055
+			}
+
+			function oklchToLinearRgb(lightness, chroma, hue) {
+				const hueRadians = (hue * Math.PI) / 180
+				const a = chroma * Math.cos(hueRadians)
+				const b = chroma * Math.sin(hueRadians)
+				const l = Math.pow(lightness + 0.3963377774 * a + 0.2158037573 * b, 3)
+				const m = Math.pow(lightness - 0.1055613458 * a - 0.0638541728 * b, 3)
+				const s = Math.pow(lightness - 0.0894841775 * a - 1.291485548 * b, 3)
+				return [
+					4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+					-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+					-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+				]
+			}
+
+			function isInGamut(linearRgb) {
+				return linearRgb.every((channel) => channel >= -0.0001 && channel <= 1.0001)
+			}
+
+			function clampChroma(lightness, chroma, hue) {
+				if (isInGamut(oklchToLinearRgb(lightness, chroma, hue))) return { chroma, clamped: false }
+				let low = 0
+				let high = chroma
+				for (let i = 0; i < 22; i++) {
+					const mid = (low + high) / 2
+					if (isInGamut(oklchToLinearRgb(lightness, mid, hue))) low = mid
+					else high = mid
+				}
+				return { chroma: low, clamped: true }
+			}
+
+			function oklchToHex(lightness, chroma, hue) {
+				const gamut = clampChroma(lightness, chroma, hue)
+				const linear = oklchToLinearRgb(lightness, gamut.chroma, hue)
+				const toByte = (channel) =>
+					Math.round(Math.min(1, Math.max(0, linearToSrgb(Math.min(1, Math.max(0, channel))))) * 255)
+				const toHexPair = (byte) => byte.toString(16).padStart(2, "0")
+				return {
+					hex: "#" + toHexPair(toByte(linear[0])) + toHexPair(toByte(linear[1])) + toHexPair(toByte(linear[2])),
+					chroma: gamut.chroma,
+					clamped: gamut.clamped,
+				}
+			}
+
+			function hexToRgb(hex) {
+				let digits = hex.replace("#", "").trim()
+				if (digits.length === 3)
+					digits = digits
+						.split("")
+						.map((d) => d + d)
+						.join("")
+				if (!/^[0-9a-fA-F]{6}$/.test(digits)) return null
+				return [parseInt(digits.slice(0, 2), 16), parseInt(digits.slice(2, 4), 16), parseInt(digits.slice(4, 6), 16)]
+			}
+
+			function inkFor(hex) {
+				const [r, g, b] = hexToRgb(hex)
+				const luminance =
+					0.2126 * srgbToLinear(r / 255) + 0.7152 * srgbToLinear(g / 255) + 0.0722 * srgbToLinear(b / 255)
+				return luminance > 0.45 ? "rgba(0,0,0,.82)" : "rgba(255,255,255,.93)"
+			}
+
+			// ----------------------------------------------------------------
+			// State — no main colour: the whole swatch is the starting point
+			// ----------------------------------------------------------------
+			const storageKey = "whl-colour-palette-v3"
+			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
+			try {
+				const saved = JSON.parse(localStorage.getItem(storageKey))
+				if (saved && saved.chroma !== undefined) Object.assign(settings, saved)
+			} catch (error) {
+				/* fresh start is fine */
+			}
+
+			function elementById(id) {
+				return document.getElementById(id)
+			}
+
+			function showToast(message) {
+				const toast = elementById("toast")
+				toast.textContent = message
+				toast.classList.add("toast--visible")
+				clearTimeout(toast.hideTimer)
+				toast.hideTimer = setTimeout(() => toast.classList.remove("toast--visible"), 1400)
+			}
+
+			function copyToClipboard(text, message) {
+				const announce = () => showToast(message || text + "  copied")
+				const fallback = () => {
+					const scratch = document.createElement("textarea")
+					scratch.value = text
+					scratch.style.cssText = "position:fixed;top:0;left:0;opacity:0"
+					document.body.appendChild(scratch)
+					scratch.focus()
+					scratch.select()
+					let copied = false
+					try {
+						copied = document.execCommand("copy")
+					} catch (error) {
+						copied = false
+					}
+					scratch.remove()
+					if (copied) announce()
+					else showToast("copy failed — try the SVG export")
+				}
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					navigator.clipboard.writeText(text).then(announce).catch(fallback)
+				} else {
+					fallback()
+				}
+			}
+
+			// ----------------------------------------------------------------
+			// Palette — hue families as columns, lightness steps as rows.
+			// Black (the toolbar) is rung 0, white the top rung; the steps are
+			// the evenly spaced rungs between them.
+			// ----------------------------------------------------------------
+			function stepLabels() {
+				const count = settings.lightnessCount
+				const labels = []
+				for (let i = 0; i < count; i++) labels.push(Math.round(((count - i) * 100) / count))
+				return labels
+			}
+
+			function lightnessAt(index) {
+				return (index + 1) / (settings.lightnessCount + 1)
+			}
+
+			function chromaAt(lightness) {
+				// chroma breathes with lightness: full at mid-tones, gentle at the extremes
+				const factor = 0.2 + 0.8 * Math.sin(Math.PI * Math.min(1, Math.max(0, lightness)))
+				return settings.chroma * factor
+			}
+
+			function buildFamilies() {
+				const labels = stepLabels()
+				const families = []
+				for (let i = 0; i < settings.hueCount; i++) {
+					const hue = (settings.hueStart + (i * 360) / settings.hueCount) % 360
+					const cells = labels.map((label, index) => {
+						const lightness = lightnessAt(index)
+						const rendered = oklchToHex(lightness, chromaAt(lightness), hue)
+						return {
+							label,
+							hex: rendered.hex,
+							clamped: rendered.clamped,
+							// the title IS the colour, in standard CSS oklch() notation
+							title: `${Math.round(lightness * 100)}% ${rendered.chroma.toFixed(3)} ${Math.round(hue)}`,
+						}
+					})
+					families.push({ hue, cells })
+				}
+				return families
+			}
+
+			// ----------------------------------------------------------------
+			// Rendering
+			// ----------------------------------------------------------------
+			function colourCell(cell, column, row, ink) {
+				const element = document.createElement("div")
+				element.className = "cell"
+				element.style.cssText = `background:${cell.hex}; grid-row:${row}; grid-column:${column}; color:${ink}`
+				element.innerHTML = `<span class="cell-title" style="color:${ink}">${cell.title}</span>
+				<span class="cell-hex" style="color:${ink}">${cell.hex.toUpperCase()}</span>
+				${cell.clamped ? `<span class="cell-flag" style="color:${ink}">◇</span>` : ""}`
+				element.title = `${cell.title} — ${cell.hex.toUpperCase()} — click to copy`
+				element.onclick = () => copyToClipboard(cell.hex.toUpperCase())
+				return element
+			}
+
+			function whiteRowCell(row) {
+				const element = document.createElement("div")
+				element.className = "cell"
+				element.style.cssText = `background:#fff; grid-row:${row}; grid-column:1 / -1; color:#000;
+				box-shadow:inset 0 1px 0 #eee; display:flex; align-items:center`
+				element.innerHTML = `<span class="cell-note">◇ chroma was reduced to fit the sRGB screen gamut — the title shows the actual rendered value</span>`
+				element.title = "White — #FFFFFF — click to copy"
+				element.onclick = () => copyToClipboard("#FFFFFF")
+				return element
+			}
+
+			function render() {
+				elementById("lightnessRange").value = settings.lightnessCount
+				elementById("chromaRange").value = settings.chroma
+				elementById("huesRange").value = settings.hueCount
+				elementById("lightnessValue").textContent = settings.lightnessCount
+				elementById("chromaValue").textContent = settings.chroma.toFixed(3)
+				elementById("huesValue").textContent = settings.hueCount
+
+				const families = buildFamilies()
+				const swatch = elementById("swatch")
+				const stale = [...swatch.children].filter((child) => child.id !== "toolbar")
+				stale.forEach((child) => child.remove())
+
+				// every cell keeps a 2:1 width-to-height ratio: columns share the
+				// viewport width down to a readable minimum (then the swatch
+				// scrolls), and each row is exactly half the column width
+				const minimumWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-min-width"))
+				const columnWidth = Math.max(minimumWidth, swatch.clientWidth / families.length)
+				const rowHeight = Math.round(columnWidth / 2)
+				swatch.style.gridTemplateColumns = `repeat(${families.length}, minmax(${minimumWidth}px, 1fr))`
+				swatch.style.gridTemplateRows = `repeat(${settings.lightnessCount + 2}, ${rowHeight}px)`
+
+				swatch.appendChild(whiteRowCell(settings.lightnessCount + 2))
+				families.forEach((family, columnIndex) => {
+					family.cells.forEach((cell, rowIndex) => {
+						swatch.appendChild(colourCell(cell, columnIndex + 1, rowIndex + 2, inkFor(cell.hex)))
+					})
+				})
+
+				try {
+					localStorage.setItem(storageKey, JSON.stringify(settings))
+				} catch (error) {
+					/* private mode is fine */
+				}
+			}
+
+			// ----------------------------------------------------------------
+			// Exports
+			// ----------------------------------------------------------------
+			function gatherPalette() {
+				return {
+					settings: {
+						lightness: settings.lightnessCount,
+						chroma: Number(settings.chroma.toFixed(4)),
+						hues: settings.hueCount,
+					},
+					black: "#000000",
+					white: "#ffffff",
+					families: buildFamilies().map((family) => ({
+						hue: Math.round(family.hue),
+						steps: Object.fromEntries(family.cells.map((cell) => [cell.label, cell.hex])),
+					})),
+				}
+			}
+
+			function hueToken(hue) {
+				return String(Math.round(hue) % 360).padStart(3, "0")
+			}
+
+			function exportCss() {
+				const labels = stepLabels()
+				let css = ":root {\n  /* WHL Colour Palette */\n  --whl-black: #000000;\n  --whl-white: #ffffff;\n"
+				buildFamilies().forEach((family) => {
+					family.cells.forEach((cell, index) => {
+						css += `  --whl-${hueToken(family.hue)}-${labels[index]}: ${cell.hex};\n`
+					})
+				})
+				css += "}"
+				copyToClipboard(css, "CSS variables copied")
+			}
+
+			function exportJson() {
+				copyToClipboard(JSON.stringify(gatherPalette(), null, 2), "JSON copied")
+			}
+
+			function exportHex() {
+				const lines = buildFamilies().flatMap((family) => family.cells.map((cell) => cell.hex))
+				copyToClipboard(["#000000", ...lines, "#FFFFFF"].join("\n").toUpperCase(), "hex list copied")
+			}
+
+			function exportSvg() {
+				const families = buildFamilies()
+				const cellSize = 100
+				const bandHeight = 62
+				const width = families.length * cellSize
+				const height = bandHeight * 2 + settings.lightnessCount * cellSize
+				let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n`
+				svg += `  <rect x="0" y="0" width="${width}" height="${bandHeight}" fill="#000000"/>\n`
+				svg += `  <rect x="0" y="${height - bandHeight}" width="${width}" height="${bandHeight}" fill="#ffffff"/>\n`
+				families.forEach((family, columnIndex) => {
+					family.cells.forEach((cell, rowIndex) => {
+						svg += `  <rect x="${columnIndex * cellSize}" y="${bandHeight + rowIndex * cellSize}" width="${cellSize}" height="${cellSize}" fill="${cell.hex}"/>\n`
+					})
+				})
+				svg += "</svg>"
+				const blob = new Blob([svg], { type: "image/svg+xml" })
+				const link = document.createElement("a")
+				link.href = URL.createObjectURL(blob)
+				link.download = "whl_colour_palette.svg"
+				link.click()
+				URL.revokeObjectURL(link.href)
+				showToast("whl_colour_palette.svg downloaded")
+			}
+
+			// ----------------------------------------------------------------
+			// Wiring
+			// ----------------------------------------------------------------
+			elementById("lightnessRange").addEventListener("input", function (event) {
+				settings.lightnessCount = Number(event.target.value)
+				render()
+			})
+			elementById("chromaRange").addEventListener("input", function (event) {
+				settings.chroma = Number(event.target.value)
+				render()
+			})
+			elementById("huesRange").addEventListener("input", function (event) {
+				settings.hueCount = Number(event.target.value)
+				render()
+			})
+			elementById("exportCss").addEventListener("click", exportCss)
+			elementById("exportJson").addEventListener("click", exportJson)
+			elementById("exportHex").addEventListener("click", exportHex)
+			elementById("exportSvg").addEventListener("click", exportSvg)
+			window.addEventListener("resize", render)
+
+			render()
+		</script>
+	</body>
+</html>
