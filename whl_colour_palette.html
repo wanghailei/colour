@@ -185,7 +185,7 @@
 					content: "";
 					position: absolute;
 					inset: 0;
-					box-shadow: inset 0 0 0 2px currentColor;
+					box-shadow: inset 0 0 0 1px currentColor;
 					opacity: 0.55;
 				}
 				.cell--selected::after {
@@ -227,12 +227,15 @@
 					position: sticky;
 					left: var(--base-space);
 					align-self: center;
+					padding: 16px 0;
 					font-weight: 300;
+					line-height: 1.8;
 					color: rgba(0, 0, 0, 0.55);
-					white-space: nowrap;
-					overflow: hidden;
 					max-width: calc(100vw - 2 * var(--base-space));
-					pointer-events: none;
+				}
+				.cell-note-link {
+					color: inherit;
+					pointer-events: auto;
 				}
 
 				/* --- Toast --- */
@@ -369,7 +372,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
-			const version = "0.1.0"
+			const version = "0.1.4"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -460,9 +463,9 @@
 			}
 
 			// ----------------------------------------------------------------
-			// Selection — a whole column (hue family) or row (lightness step)
-			// can be selected for export. Shift-click selects a column,
-			// alt-click a row, Escape clears.
+			// Selection — a whole column (hue family) or row (lightness step).
+			// Selecting copies its hex list and marks it for SVG export.
+			// Shift-click selects a column, alt-click a row, Escape clears.
 			// ----------------------------------------------------------------
 			let selection = null
 
@@ -476,9 +479,16 @@
 				return selection.index === rowIndex
 			}
 
-			function toggleSelection(next, announcement) {
+			function selectionHexes() {
+				const families = buildFamilies()
+				if (selection.kind === "column") return families[selection.index].cells.map((cell) => cell.hex.toUpperCase())
+				return families.map((family) => family.cells[selection.index].hex.toUpperCase())
+			}
+
+			function toggleSelection(next) {
 				selection = sameSelection(selection, next) ? null : next
-				showToast(selection ? announcement : "selection cleared")
+				if (selection) copyToClipboard(selectionHexes().join("\n"), `${selection.kind} copied — SVG exports it`)
+				else showToast("selection cleared")
 				render()
 			}
 
@@ -492,10 +502,9 @@
 				element.innerHTML = `<span class="cell-title" style="color:${ink}">${cell.title}</span>
 				<span class="cell-hex" style="color:${ink}">${cell.hex.toUpperCase()}</span>
 				${cell.clamped ? `<span class="cell-flag" style="color:${ink}">◇</span>` : ""}`
-				element.title = `${cell.title} — ${cell.hex.toUpperCase()} — click copies · shift-click selects the column · alt-click selects the row`
 				element.onclick = function (event) {
-					if (event.shiftKey) toggleSelection({ kind: "column", index: columnIndex }, "column selected — SVG exports it")
-					else if (event.altKey) toggleSelection({ kind: "row", index: rowIndex }, "row selected — SVG exports it")
+					if (event.shiftKey) toggleSelection({ kind: "column", index: columnIndex })
+					else if (event.altKey) toggleSelection({ kind: "row", index: rowIndex })
 					else copyToClipboard(cell.hex.toUpperCase())
 				}
 				return element
@@ -504,12 +513,26 @@
 			function whiteRowCell(row) {
 				const element = document.createElement("div")
 				element.className = "cell"
-				element.style.cssText = `background:#fff; grid-row:${row}; grid-column:1 / -1; color:#000;
-				box-shadow:inset 0 1px 0 #eee; display:flex; align-items:center`
-				element.innerHTML = `<span class="cell-note">◇ chroma was reduced to fit the sRGB screen gamut — the title shows the actual rendered value</span>`
-				element.title = "White — #FFFFFF — click to copy"
+				element.style.cssText = `background:#fff; grid-row:${row}; grid-column:1 / -1; color:#000; display:flex; align-items:center`
+				element.innerHTML = `<span class="cell-note">- click copies the cell — shift-click copies the column — alt-click copies the row<br>
+				◇ chroma was reduced to fit the sRGB screen gamut — the title shows the actual rendered value<br>
+				© ${new Date().getFullYear()} Wanted Hacker Limited · <a class="cell-note-link" href="https://whl.ltd">whl.ltd</a></span>`
 				element.onclick = () => copyToClipboard("#FFFFFF")
 				return element
+			}
+
+			function sizeTracks() {
+				// every cell keeps a 2:1 width-to-height ratio: columns share the
+				// viewport width down to a readable minimum (then the swatch
+				// scrolls), and each row is exactly half the column width.
+				// The white row hugs its note text, and absorbs any leftover
+				// viewport space so no bare gap appears below it.
+				const swatch = elementById("swatch")
+				const minimumWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-min-width"))
+				const columnWidth = Math.max(minimumWidth, swatch.clientWidth / settings.hueCount)
+				const rowHeight = Math.round(columnWidth / 2)
+				swatch.style.gridTemplateColumns = `repeat(${settings.hueCount}, minmax(${minimumWidth}px, 1fr))`
+				swatch.style.gridTemplateRows = `repeat(${settings.lightnessCount + 1}, ${rowHeight}px) minmax(max-content, 1fr)`
 			}
 
 			function render() {
@@ -526,14 +549,7 @@
 				const stale = [...swatch.children].filter((child) => child.id !== "toolbar")
 				stale.forEach((child) => child.remove())
 
-				// every cell keeps a 2:1 width-to-height ratio: columns share the
-				// viewport width down to a readable minimum (then the swatch
-				// scrolls), and each row is exactly half the column width
-				const minimumWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-min-width"))
-				const columnWidth = Math.max(minimumWidth, swatch.clientWidth / families.length)
-				const rowHeight = Math.round(columnWidth / 2)
-				swatch.style.gridTemplateColumns = `repeat(${families.length}, minmax(${minimumWidth}px, 1fr))`
-				swatch.style.gridTemplateRows = `repeat(${settings.lightnessCount + 2}, ${rowHeight}px)`
+				sizeTracks()
 
 				// a selection that outlived a slider change may point past the grid
 				if (selection) {
@@ -613,17 +629,23 @@
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${body}</svg>`
 			}
 
+			function exportName() {
+				// whl_colour_palette_<lightness>_<chroma>_<hues>.svg — the three
+				// toolbar settings, so every file states what produced it
+				return `whl_colour_palette_${settings.lightnessCount}_${settings.chroma.toFixed(3)}_${settings.hueCount}.svg`
+			}
+
 			function svgCells(families) {
 				if (selection && selection.kind === "column") {
 					const family = families[selection.index]
 					return {
-						name: `whl_colour_palette_hue_${hueToken(family.hue)}.svg`,
+						name: exportName(),
 						cells: family.cells.map((cell, rowIndex) => ({ column: 0, row: rowIndex, hex: cell.hex })),
 					}
 				}
 				if (selection && selection.kind === "row") {
 					return {
-						name: `whl_colour_palette_lightness_${lightnessPercentAt(selection.index)}.svg`,
+						name: exportName(),
 						cells: families.map((family, columnIndex) => ({ column: columnIndex, row: 0, hex: family.cells[selection.index].hex })),
 					}
 				}
@@ -637,7 +659,7 @@
 						cells.push({ column: columnIndex, row: rowIndex + 1, hex: cell.hex })
 					})
 				})
-				return { name: "whl_colour_palette.svg", cells }
+				return { name: exportName(), cells }
 			}
 
 			function exportSvg() {
@@ -670,7 +692,7 @@
 			elementById("exportJson").addEventListener("click", exportJson)
 			elementById("exportHex").addEventListener("click", exportHex)
 			elementById("exportSvg").addEventListener("click", exportSvg)
-			window.addEventListener("resize", render)
+			window.addEventListener("resize", sizeTracks)
 			window.addEventListener("keydown", function (event) {
 				if (event.key === "Escape" && selection) {
 					selection = null
