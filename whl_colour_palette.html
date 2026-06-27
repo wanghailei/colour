@@ -5,19 +5,34 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>WHL Colour Palette</title>
 		<style>
+			/* Bind the locally installed variable font explicitly. local() forces
+			   Safari to attach the variable family across its whole weight axis,
+			   which a bare font-family stack sometimes fails to do. */
+			@font-face {
+				font-family: "WHL Mono";
+				src:
+					local("Berkeley Mono Variable"),
+					local("BerkeleyMonoVariable"),
+					local("Berkeley Mono");
+				font-weight: 100 900;
+				font-display: swap;
+			}
+
 			@layer palette;
 
 			@layer palette {
 				/* --- Tokens --- */
 				:root {
 					--base-font:
-						"Berkeley Mono Variable", "Berkeley Mono", "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SF Mono",
-						Menlo, monospace;
+						"WHL Mono", "Berkeley Mono Variable", "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace;
 					--base-font-size: 12px;
 					--base-space: 16px;
 					--base-ink: #fff;
 					--base-ink-muted: #9a9a94;
 					--cell-min-width: 150px;
+					--cell-min-height: 48px;
+					--footer-height: 96px;
+					--header-height: var(--footer-height);
 					--z-toolbar: 6;
 					--z-toast: 20;
 				}
@@ -63,12 +78,12 @@
 					padding: 0 var(--base-space);
 				}
 				.brand {
-					font-weight: 600;
+					font-weight: 400;
 					letter-spacing: 0.01em;
 					white-space: nowrap;
 				}
 				.brand-product {
-					font-weight: 500;
+					font-weight: 400;
 				}
 				.brand-model {
 					font-weight: 400;
@@ -200,7 +215,7 @@
 					top: 12px;
 					left: var(--base-space);
 					right: 10px;
-					font-weight: 300;
+					font-weight: 400;
 					letter-spacing: 0.01em;
 					line-height: 1.3;
 					white-space: nowrap;
@@ -211,7 +226,7 @@
 					position: absolute;
 					top: 31px;
 					left: var(--base-space);
-					font-weight: 300;
+					font-weight: 400;
 					opacity: 0.78;
 					pointer-events: none;
 				}
@@ -227,8 +242,7 @@
 					position: sticky;
 					left: var(--base-space);
 					align-self: center;
-					padding: 16px 0;
-					font-weight: 300;
+					font-weight: 400;
 					line-height: 1.8;
 					color: rgba(0, 0, 0, 0.55);
 					max-width: calc(100vw - 2 * var(--base-space));
@@ -247,7 +261,7 @@
 					z-index: var(--z-toast);
 					background: #161616;
 					color: #fff;
-					font-weight: 600;
+					font-weight: 400;
 					padding: 10px 18px;
 					border-radius: 10px;
 					opacity: 0;
@@ -372,7 +386,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
-			const version = "0.1.4"
+			const version = "0.2.0"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -522,17 +536,15 @@
 			}
 
 			function sizeTracks() {
-				// every cell keeps a 2:1 width-to-height ratio: columns share the
-				// viewport width down to a readable minimum (then the swatch
-				// scrolls), and each row is exactly half the column width.
-				// The white row hugs its note text, and absorbs any leftover
-				// viewport space so no bare gap appears below it.
+				// The grid fills the browser window. Columns share the width and
+				// rows share the height as equal fractions, down to readable
+				// minimums; past those the swatch scrolls instead of crushing.
+				// The header (toolbar) and footer (white note) have fixed heights;
+				// the colour rows take the rest.
 				const swatch = elementById("swatch")
-				const minimumWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-min-width"))
-				const columnWidth = Math.max(minimumWidth, swatch.clientWidth / settings.hueCount)
-				const rowHeight = Math.round(columnWidth / 2)
-				swatch.style.gridTemplateColumns = `repeat(${settings.hueCount}, minmax(${minimumWidth}px, 1fr))`
-				swatch.style.gridTemplateRows = `repeat(${settings.lightnessCount + 1}, ${rowHeight}px) minmax(max-content, 1fr)`
+				const minWidth = getComputedStyle(document.documentElement).getPropertyValue("--cell-min-width").trim()
+				swatch.style.gridTemplateColumns = `repeat(${settings.hueCount}, minmax(${minWidth}, 1fr))`
+				swatch.style.gridTemplateRows = `var(--header-height) repeat(${settings.lightnessCount}, minmax(var(--cell-min-height), 1fr)) var(--footer-height)`
 			}
 
 			function render() {
