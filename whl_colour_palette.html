@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>WHL Colour Palette</title>
+		<title>WHL Colours Palette</title>
 		<style>
 			/* Bind the locally installed variable font explicitly. local() forces
 			   Safari to attach the variable family across its whole weight axis,
@@ -11,10 +11,24 @@
 			@font-face {
 				font-family: "WHL Mono";
 				src:
+					local("BerkeleyMonoVariable-Regular"),
 					local("Berkeley Mono Variable"),
 					local("BerkeleyMonoVariable"),
+					local("TX-02"),
+					local("BerkeleyMono-Regular"),
 					local("Berkeley Mono");
 				font-weight: 100 900;
+				font-display: swap;
+			}
+
+			/* Named Medium instance as a fallback for weight 500, in case the
+			   engine matched a static face that lacks the weight axis. */
+			@font-face {
+				font-family: "WHL Mono";
+				src:
+					local("BerkeleyMonoVariable-Regular_Medium"),
+					local("Berkeley Mono Variable Regular Medium");
+				font-weight: 500;
 				font-display: swap;
 			}
 
@@ -24,7 +38,8 @@
 				/* --- Tokens --- */
 				:root {
 					--base-font:
-						"WHL Mono", "Berkeley Mono Variable", "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace;
+						"WHL Mono", "Berkeley Mono Variable", "TX-02", "Berkeley Mono", ui-monospace, "SF Mono", Menlo,
+						monospace;
 					--base-font-size: 12px;
 					--base-space: 16px;
 					--base-ink: #fff;
@@ -78,12 +93,12 @@
 					padding: 0 var(--base-space);
 				}
 				.brand {
-					font-weight: 400;
+					font-weight: 500;
 					letter-spacing: 0.01em;
 					white-space: nowrap;
 				}
 				.brand-product {
-					font-weight: 400;
+					font-weight: 500;
 				}
 				.brand-model {
 					font-weight: 400;
@@ -203,6 +218,14 @@
 					box-shadow: inset 0 0 0 1px currentColor;
 					opacity: 0.55;
 				}
+				/* The white footer note is a caption, not a colour cell — no
+				   pointer, no hover outline, no click-to-copy. */
+				.cell--plain {
+					cursor: default;
+				}
+				.cell--plain:hover::after {
+					content: none;
+				}
 				.cell--selected::after {
 					content: "";
 					position: absolute;
@@ -281,7 +304,7 @@
 			<div class="toolbar" id="toolbar">
 				<div class="toolbar-inner">
 					<div class="brand">
-						WHL <span class="brand-product">Colour Palette</span> <span class="brand-model">– OKLCH</span>
+						WHL <span class="brand-product">Colours Palette</span> <span class="brand-model">– OKLCH</span>
 					<span class="brand-version" id="brandVersion"></span>
 					</div>
 					<div class="controls">
@@ -386,7 +409,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
-			const version = "0.2.0"
+			const version = "0.48.0"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -526,12 +549,11 @@
 
 			function whiteRowCell(row) {
 				const element = document.createElement("div")
-				element.className = "cell"
+				element.className = "cell cell--plain"
 				element.style.cssText = `background:#fff; grid-row:${row}; grid-column:1 / -1; color:#000; display:flex; align-items:center`
 				element.innerHTML = `<span class="cell-note">- click copies the cell — shift-click copies the column — alt-click copies the row<br>
 				◇ chroma was reduced to fit the sRGB screen gamut — the title shows the actual rendered value<br>
 				© ${new Date().getFullYear()} Wanted Hacker Limited · <a class="cell-note-link" href="https://whl.ltd">whl.ltd</a></span>`
-				element.onclick = () => copyToClipboard("#FFFFFF")
 				return element
 			}
 
@@ -607,7 +629,7 @@
 			}
 
 			function exportCss() {
-				let css = ":root {\n  /* WHL Colour Palette */\n  --whl-black: #000000;\n  --whl-white: #ffffff;\n"
+				let css = ":root {\n  /* WHL Colours Palette */\n  --whl-black: #000000;\n  --whl-white: #ffffff;\n"
 				buildFamilies().forEach((family) => {
 					family.cells.forEach((cell) => {
 						css += `  --whl-${hueToken(family.hue)}-${cell.label}: ${cell.hex};\n`
