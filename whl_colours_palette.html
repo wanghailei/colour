@@ -409,7 +409,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
-			const version = "0.49.0"
+			const version = "0.49.1"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -664,9 +664,9 @@
 			}
 
 			function exportName(extension) {
-				// whl_colour_palette_<lightness>_<chroma>_<hues>.<extension> — the three
+				// whl_colours_palette_<lightness>_<chroma>_<hues>.<extension> — the three
 				// toolbar settings, so every file states what produced it
-				return `whl_colour_palette_${settings.lightnessCount}_${settings.chroma.toFixed(3)}_${settings.hueCount}.${extension}`
+				return `whl_colours_palette_${settings.lightnessCount}_${settings.chroma.toFixed(3)}_${settings.hueCount}.${extension}`
 			}
 
 			function downloadFile(name, content, type) {
