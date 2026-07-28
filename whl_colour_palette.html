@@ -323,7 +323,7 @@
 					</div>
 					<div class="exports">
 						<button class="export-button" id="exportCss" title="copy all colours as CSS variables">CSS</button>
-						<button class="export-button" id="exportJson" title="copy the whole palette as JSON">JSON</button>
+						<button class="export-button" id="exportJson" title="download the whole palette as JSON">JSON</button>
 						<button class="export-button" id="exportHex" title="copy a plain list of hex codes">HEX</button>
 						<button class="export-button" id="exportSvg" title="download the swatch as SVG (no text)">SVG</button>
 					</div>
@@ -409,7 +409,7 @@
 			// ----------------------------------------------------------------
 			// State — no main colour: the whole swatch is the starting point
 			// ----------------------------------------------------------------
-			const version = "0.48.0"
+			const version = "0.49.0"
 			const storageKey = "whl-colour-palette-v3"
 			const settings = { hueStart: 25, chroma: 0.2, hueCount: 12, lightnessCount: 20 }
 			try {
@@ -640,7 +640,7 @@
 			}
 
 			function exportJson() {
-				copyToClipboard(JSON.stringify(gatherPalette(), null, 2), "JSON copied")
+				downloadFile(exportName("json"), JSON.stringify(gatherPalette(), null, 2), "application/json")
 			}
 
 			function exportHex() {
@@ -663,23 +663,33 @@
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${body}</svg>`
 			}
 
-			function exportName() {
-				// whl_colour_palette_<lightness>_<chroma>_<hues>.svg — the three
+			function exportName(extension) {
+				// whl_colour_palette_<lightness>_<chroma>_<hues>.<extension> — the three
 				// toolbar settings, so every file states what produced it
-				return `whl_colour_palette_${settings.lightnessCount}_${settings.chroma.toFixed(3)}_${settings.hueCount}.svg`
+				return `whl_colour_palette_${settings.lightnessCount}_${settings.chroma.toFixed(3)}_${settings.hueCount}.${extension}`
+			}
+
+			function downloadFile(name, content, type) {
+				const blob = new Blob([content], { type })
+				const link = document.createElement("a")
+				link.href = URL.createObjectURL(blob)
+				link.download = name
+				link.click()
+				URL.revokeObjectURL(link.href)
+				showToast(name + " downloaded")
 			}
 
 			function svgCells(families) {
 				if (selection && selection.kind === "column") {
 					const family = families[selection.index]
 					return {
-						name: exportName(),
+						name: exportName("svg"),
 						cells: family.cells.map((cell, rowIndex) => ({ column: 0, row: rowIndex, hex: cell.hex })),
 					}
 				}
 				if (selection && selection.kind === "row") {
 					return {
-						name: exportName(),
+						name: exportName("svg"),
 						cells: families.map((family, columnIndex) => ({ column: columnIndex, row: 0, hex: family.cells[selection.index].hex })),
 					}
 				}
@@ -693,18 +703,12 @@
 						cells.push({ column: columnIndex, row: rowIndex + 1, hex: cell.hex })
 					})
 				})
-				return { name: exportName(), cells }
+				return { name: exportName("svg"), cells }
 			}
 
 			function exportSvg() {
 				const choice = svgCells(buildFamilies())
-				const blob = new Blob([svgRectangles(choice.cells)], { type: "image/svg+xml" })
-				const link = document.createElement("a")
-				link.href = URL.createObjectURL(blob)
-				link.download = choice.name
-				link.click()
-				URL.revokeObjectURL(link.href)
-				showToast(choice.name + " downloaded")
+				downloadFile(choice.name, svgRectangles(choice.cells), "image/svg+xml")
 			}
 
 			// ----------------------------------------------------------------
