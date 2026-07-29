@@ -166,7 +166,29 @@ test( "SVG colour cells carry title, hex, cmyk and pt, in their ink", () => {
 	assert.ok( svg.includes( ">" + approximateCmyk( sample.hex ) + "<" ) )
 	assert.ok( svg.includes( ">" + ptCode( sample.hex ) + "<" ) )
 	assert.ok( svg.includes( `fill="${inkFor( sample.hex )}"` ) )
-	assert.ok( /font-family="Berkeley Mono Variable, Berkeley Mono/.test( svg ) )
+	ptTable = null
+} )
+test( "SVG text mirrors the UI: 12px, weight 400, left 16, tops 12/31/50/69", () => {
+	// design tools ignore attributes inherited from groups, so every text
+	// element must be self-contained — same size, same grid as the UI cell
+	Object.assign( settings, defaultSettings )
+	selection = null
+	ptTable = { coated: { "186": "#c8102e" } }
+	const svg = svgRectangles( svgCells( buildFamilies() ).cells )
+	const texts = svg.match( /<text [^>]*>/g )
+	assert.ok( texts.length > 0 )
+	texts.forEach( ( tag ) => {
+		assert.ok( tag.includes( 'font-size="12"' ), "self-contained size: " + tag )
+		assert.ok( tag.includes( 'font-weight="400"' ), "self-contained weight: " + tag )
+		assert.ok( tag.includes( "'Berkeley Mono Variable'" ), "quoted family: " + tag )
+		const x = Number( tag.match( / x="(\d+)"/ )[1] )
+		assert.equal( ( x - 16 ) % 150, 0, "left margin 16 inside a 150 cell: " + tag )
+	} )
+	// baselines: UI tops 12/31/50/69 + 10 ascent = 22/41/60/79 within every cell
+	texts.forEach( ( tag ) => {
+		const y = Number( tag.match( / y="(\d+)"/ )[1] )
+		assert.ok( [ 22, 41, 60, 79 ].includes( y % 150 ), "baseline on the UI grid: " + tag )
+	} )
 	ptTable = null
 } )
 test( "SVG values sit in per-kind groups inside one top values layer", () => {
@@ -175,12 +197,16 @@ test( "SVG values sit in per-kind groups inside one top values layer", () => {
 	ptTable = { coated: { "186": "#c8102e" } }
 	const svg = svgRectangles( svgCells( buildFamilies() ).cells )
 	;[ "values", "oklch", "hex", "cmyk", "pt" ].forEach( ( id ) => {
-		assert.ok( svg.includes( `<g id="${id}"` ), id + " group present" )
+		assert.ok( svg.includes( `<g id="${id}">` ), id + " group is purely structural" )
 	} )
 	// the values layer must sit above every colour plate: no rect after it
-	const valuesAt = svg.indexOf( '<g id="values"' )
+	const valuesAt = svg.indexOf( '<g id="values">' )
 	assert.ok( valuesAt > svg.lastIndexOf( "<rect " ) )
 	ptTable = null
+} )
+test( "SVG cell is 1:1 at twice the UI height", () => {
+	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456" } ] )
+	assert.ok( svg.includes( 'width="150" height="150"' ) )
 } )
 test( "SVG frame rows stay textless, pt appears only with a table", () => {
 	Object.assign( settings, defaultSettings )

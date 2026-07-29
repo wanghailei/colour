@@ -14,6 +14,10 @@ rm -rf "$T"; mkdir -p "$T"
 grep -q 'id="chromaRange" min="0" max="0.32" step="0.002"' "$SRC" ||
 	{ echo "FAIL: chroma slider is not capped at the sRGB ceiling 0.32"; exit 1; }
 
+# The UI cell is 2:1 — the owner's layout law (29 Jul 2026).
+grep -q -- '--cell-min-width: 150px' "$SRC" && grep -q -- '--cell-min-height: 75px' "$SRC" ||
+	{ echo "FAIL: UI cell minimums are not 150x75 (2:1)"; exit 1; }
+
 # Typography follows the Gradient's proven pattern: the served web font
 # answers first; no local() machinery remains.
 grep -q 'src: url(../gradient/berkeley.woff2) format("woff2")' "$SRC" ||
