@@ -14,6 +14,15 @@ rm -rf "$T"; mkdir -p "$T"
 grep -q 'id="chromaRange" min="0" max="0.32" step="0.002"' "$SRC" ||
 	{ echo "FAIL: chroma slider is not capped at the sRGB ceiling 0.32"; exit 1; }
 
+# Typography follows the Gradient's proven pattern: the served web font
+# answers first; no local() machinery remains.
+grep -q 'src: url(../gradient/berkeley.woff2) format("woff2")' "$SRC" ||
+	{ echo "FAIL: the served Berkeley Mono face is missing"; exit 1; }
+grep -q '"Berkeley Mono", "Berkeley Mono Variable"' "$SRC" ||
+	{ echo "FAIL: the served face does not lead the font stack"; exit 1; }
+! grep -q 'local("' "$SRC" ||
+	{ echo "FAIL: local() font machinery has crept back in"; exit 1; }
+
 # Pure-layer extraction. Each range starts at a unique anchor and stops
 # before the first impure neighbour (DOM, clipboard, storage, network).
 {

@@ -154,23 +154,41 @@ test( "a row selection is named by its lightness", () => {
 	assert.equal( svgCells( buildFamilies() ).name, "whl_colours_palette_18_0.120_28_l68.svg" )
 	selection = null
 } )
-test( "SVG colour cells carry their title and hex, in their ink", () => {
+test( "SVG colour cells carry title, hex, cmyk and pt, in their ink", () => {
 	Object.assign( settings, defaultSettings )
 	selection = null
+	ptTable = { coated: { "186": "#c8102e" }, uncoated: { "485": "#da291c" } }
 	const families = buildFamilies()
 	const svg = svgRectangles( svgCells( families ).cells )
 	const sample = families[0].cells[10]
 	assert.ok( svg.includes( ">" + sample.title + "<" ) )
 	assert.ok( svg.includes( ">" + sample.hex.toUpperCase() + "<" ) )
+	assert.ok( svg.includes( ">" + approximateCmyk( sample.hex ) + "<" ) )
+	assert.ok( svg.includes( ">" + ptCode( sample.hex ) + "<" ) )
 	assert.ok( svg.includes( `fill="${inkFor( sample.hex )}"` ) )
-	assert.ok( /font-family="Berkeley Mono/.test( svg ) )
+	assert.ok( /font-family="Berkeley Mono Variable, Berkeley Mono/.test( svg ) )
+	ptTable = null
 } )
-test( "SVG frame rows stay textless", () => {
+test( "SVG values sit in per-kind groups inside one top values layer", () => {
+	Object.assign( settings, defaultSettings )
+	selection = null
+	ptTable = { coated: { "186": "#c8102e" } }
+	const svg = svgRectangles( svgCells( buildFamilies() ).cells )
+	;[ "values", "oklch", "hex", "cmyk", "pt" ].forEach( ( id ) => {
+		assert.ok( svg.includes( `<g id="${id}"` ), id + " group present" )
+	} )
+	// the values layer must sit above every colour plate: no rect after it
+	const valuesAt = svg.indexOf( '<g id="values"' )
+	assert.ok( valuesAt > svg.lastIndexOf( "<rect " ) )
+	ptTable = null
+} )
+test( "SVG frame rows stay textless, pt appears only with a table", () => {
 	Object.assign( settings, defaultSettings )
 	selection = null
 	const svg = svgRectangles( svgCells( buildFamilies() ).cells )
 	const textCount = ( svg.match( /<text /g ) || [] ).length
-	assert.equal( textCount, settings.hueCount * settings.lightnessCount * 2 )
+	assert.equal( textCount, settings.hueCount * settings.lightnessCount * 3 )
+	assert.ok( !svg.includes( '<g id="pt"' ) )
 } )
 test( "SVG cells are square — the canonical swatch form", () => {
 	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456" }, { column: 1, row: 0, hex: "#654321" } ] )
