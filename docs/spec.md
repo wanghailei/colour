@@ -83,7 +83,7 @@ WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTM
 
 ### 4.2 Layout
 
-- The page is the swatch. A CSS grid fills the browser window: columns share the width down to a 150px minimum, rows share the height down to a **100px** minimum; past the minimums the swatch scrolls instead of crushing.
+- The page is the swatch. A CSS grid fills the browser window: columns share the width down to a 150px minimum, rows share the height down to a **64px** minimum (100px was tried through 0.49.3–0.53.0 and cut back a third on 29 Jul 2026 — at the 28-hue default the 150×100 cell read as an ugly ratio); past the minimums the swatch scrolls instead of crushing.
 - The toolbar **is** the black row: grid row 1, sticky at the top, fixed 96px height. The white caption row sits at the bottom, also 96px (header height is linked to footer height). Colour rows take the rest.
 - Toolbar content: brand left ("WHL **Colours Palette** – OKLCH ‹version›", with the model suffix and version at reduced opacity), the three sliders centred, the four export buttons right. The inner toolbar is sticky against horizontal scroll.
 - Safari's rubber-band overscroll is disabled on the document and the scroll container (`overscroll-behavior: none`, 28 Jul 2026).
