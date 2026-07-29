@@ -1,0 +1,3 @@
+# The PT sidecar is licensed reference data the owner supplies locally.
+# It must never enter this public repository.
+pantone.json
