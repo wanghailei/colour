@@ -148,11 +148,20 @@ test( "garbage and shapeless drops are rejected", () => {
 	assert.equal( parsePtTable( '{ "coated": { "186": 42 } }' ), null )
 	assert.equal( parsePtTable( '[1,2]' ), null )
 } )
-test( "the SVG names its fonts like CSS — no embedding, no style block", () => {
+test( "the SVG names its fonts the way design apps expect", () => {
+	// PostScript name first (what Affinity and friends match), family
+	// names after (what browsers match), no quotes anywhere — Affinity
+	// reads a quoted list as one literal unknown font name.
 	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456", title: "5% 0.033 25" } ] )
 	assert.ok( !svg.includes( "<style>" ) )
 	assert.ok( !svg.includes( "@font-face" ) )
-	assert.ok( svg.includes( `font-family="'Berkeley Mono Variable', 'Berkeley Mono', 'IBM Plex Mono', 'JetBrains Mono', monospace"` ) )
+	assert.ok( !svg.includes( "'" ), "no quote characters anywhere in the SVG" )
+	assert.ok( !svg.includes( "letter-spacing" ), "no letter-spacing attribute — importers choke on em units" )
+	assert.ok(
+		svg.includes(
+			'font-family="BerkeleyMonoVariable-Regular, Berkeley Mono Variable, Berkeley Mono, IBM Plex Mono, JetBrains Mono, monospace"'
+		)
+	)
 } )
 
 // ---------------------------------------------------------------
@@ -200,7 +209,7 @@ test( "SVG text mirrors the UI: 12px, weight 400, left 16, tops 12/31/50/69", ()
 	texts.forEach( ( tag ) => {
 		assert.ok( tag.includes( 'font-size="12"' ), "self-contained size: " + tag )
 		assert.ok( tag.includes( 'font-weight="400"' ), "self-contained weight: " + tag )
-		assert.ok( tag.includes( "'Berkeley Mono Variable'" ), "quoted family: " + tag )
+		assert.ok( tag.includes( "BerkeleyMonoVariable-Regular, Berkeley Mono Variable" ), "PostScript-first family list: " + tag )
 		const x = Number( tag.match( / x="(\d+)"/ )[1] )
 		assert.equal( ( x - 16 ) % 150, 0, "left margin 16 inside a 150 cell: " + tag )
 	} )
