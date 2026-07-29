@@ -1,12 +1,12 @@
 # WHL Colours Palette — Specification
 
-> Describes the tool as it is at **version 0.50.0** (`whl_colours_palette.html`, repo `~/Dev/Colours/Palette`, remote `github.com/wanghailei/colour`). History appears only as rationale. Sources: the current HTML file and the build-session transcripts (Claude Cowork session of 4 Jun – 27 Jul 2026, and Claude Code sessions of 27–29 Jul 2026).
+> Describes the tool as it is at **version 0.51.0** (`whl_colours_palette.html`, repo `~/Dev/Colours/Palette`, remote `github.com/wanghailei/colour`). History appears only as rationale. Sources: the current HTML file and the build-session transcripts (Claude Cowork session of 4 Jun – 27 Jul 2026, and Claude Code sessions of 27–29 Jul 2026).
 
 ---
 
 ## 1. What it is
 
-WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTML tool that generates a complete, perceptually even colour system as one full-viewport swatch grid — hue families as columns, lightness steps as rows, black (the toolbar) at the top and white (the caption row) at the bottom — and exports it into any design workflow as CSS variables, JSON, a hex list, or a textless SVG. "WHL" is Wanted Hacker Limited (whl.ltd). The whole grid is the deliverable; there is no seed colour and no picker.
+WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTML tool that generates a complete, perceptually even colour system as one full-viewport swatch grid — hue families as columns, lightness steps as rows, black (the toolbar) at the top and white (the caption row) at the bottom — and exports it into any design workflow as CSS variables, JSON, a hex list, or a titled SVG. "WHL" is Wanted Hacker Limited (whl.ltd). The whole grid is the deliverable; there is no seed colour and no picker.
 
 ## 2. Purpose and principles
 
@@ -23,12 +23,12 @@ WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTM
 
 | Control | Range | Meaning |
 |---|---|---|
-| `lightness` | 5–100, step 1 (default 20) | **Count** of lightness rows — an even ladder strictly between black and white |
-| `chroma` | 0–0.32, step 0.002 (default 0.150) | One global saturation for the whole swatch |
-| `hues` | 3–100, step 1 (default 12) | **Count** of hue families (columns), spread evenly around 360° |
+| `lightness` | 5–100, step 1 (default 18) | **Count** of lightness rows — an even ladder strictly between black and white |
+| `chroma` | 0–0.32, step 0.002 (default 0.120) | One global saturation for the whole swatch |
+| `hues` | 3–100, step 1 (default 28) | **Count** of hue families (columns), spread evenly around 360° |
 
 - The chroma ceiling is the sRGB gamut's: its global maximum chroma is ≈0.313 (the blue primary), so every slider position past 0.32 clamped for every hue. The former 0.37 (Display-P3) ceiling was cut on 29 Jul 2026 — sRGB hex is the deliverable, practical on any screen, any platform, and in print preparation. Settings stored before the cap are clamped on load.
-- **0.150 is the house default chroma** (decided 29 Jul 2026): mid-slider under the 0.32 ceiling, saturated at mid-tones under the breathing curve, and gamut clamping stays rare across the twelve default hues. There is no industry standard to defer to — systems such as Carbon or Tailwind tune chroma per family, whereas one global chroma is this tool's own design.
+- **The house default is 18 / 0.120 / 28** (decided 29 Jul 2026) — the exact settings the companion Gradient tool's baked default swatch (`swatch/default.json`) was generated from, verified cell-for-cell identical, so a fresh visitor to either tool starts from the one house standard. An interim 0.150 default was chosen earlier the same day and superseded by this sync. There is no industry standard to defer to — systems such as Carbon or Tailwind tune chroma per family, whereas one global chroma is this tool's own design.
 
 - Lightness and hues are free sliders, not presets (presets 10/20/30/40/50/100 were tried and rejected as too limited, 4 Jun 2026).
 - The first hue sits at 25° (`hueStart: 25`, fixed; the hue-rotate control was removed).
@@ -64,10 +64,11 @@ WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTM
 | `CSS` | copies | `:root` block: `--whl-black`, `--whl-white`, then `--whl-<hue, 3 digits>-<lightness %>: <hex>` per cell |
 | `JSON` | downloads | `{ settings: {lightness, chroma, hues}, black, white, families: [{hue, steps: {<L%>: <hex>}, print: {<L%>: {cmyk, pt?}}}] }` |
 | `HEX` | copies | plain upper-case list, `#000000` first, `#FFFFFF` last |
-| `SVG` | downloads | textless rectangles, 100×100 (square — the canonical swatch form, decided 29 Jul 2026; the fill-to-window screen is a live view); full swatch includes the black top row and white bottom row; with a selection active, only the selected strip |
+| `SVG` | downloads | titled rectangles, 100×100 (square — the canonical swatch form, decided 29 Jul 2026; the fill-to-window screen is a live view); full swatch includes the black top row and white bottom row; with a selection active, only the selected strip |
 
 - **Print references** (JSON only, 29 Jul 2026): each step carries a `print` entry beside its honest hex — `cmyk`, the naive uncalibrated device conversion as `[c, m, y, k]` percentages, always; `pt`, the nearest entry of an optional sidecar table, only when present. The sidecar is `pantone.json` beside the HTML — a flat `{ "name": "#hex" }` map the owner supplies; it is licensed reference data, git-ignored, and never ships with the source. Nearest match is by OKLab distance. Both values are approximations for print orientation only — the hex remains the truth. The Gradient tool reads `steps` alone, so `print` is invisible to it.
-- Download filenames encode the three settings: `whl_colours_palette_<lightness>_<chroma>_<hues>.<ext>` — every file states what produced it (convention set 5 Jun 2026; prefix pluralised with the file rename, 28 Jul 2026). A selection export appends what was selected (29 Jul 2026): `_hue<deg>` for a column, `_light<pct>` for a row.
+- **SVG cell titles** (29 Jul 2026, replacing the original no-text rule): every colour cell carries its title and upper-case hex as vector text at the screen's visual density (11 and 10 units in a 100-unit cell), in the cell's own ink via the same luminance flip as the screen. The font is named, not embedded — `Berkeley Mono, ui-monospace, Menlo, monospace` — so machines with Berkeley render it exactly and everywhere else falls through to a monospace; text stays selectable and editable. The black and white frame plates stay bare, mirroring the screen.
+- Download filenames encode the three settings: `whl_colours_palette_<lightness>_<chroma>_<hues>.<ext>` — every file states what produced it (convention set 5 Jun 2026; prefix pluralised with the file rename, 28 Jul 2026). A selection export appends what was selected (29 Jul 2026): `_h<deg>` for a column, `_l<pct>` for a row.
 - Exports always derive from the palette model (`buildFamilies()`), never from the DOM.
 - Clipboard writes use the async Clipboard API with an `execCommand` fallback and a toast either way.
 
@@ -113,14 +114,15 @@ WHL Colours Palette is Wang Hailei's personal colour standard: a single-file HTM
 - **27 Jul 2026 — handoff to Claude Code.** design.md / develop.md / project.md written in the Cowork session; version renumbered 0.2.0 → 0.48.0 (minor = iteration count); renamed **WHL Colours Palette** (plural) with the brand at medium weight; font binding fixed; footer defused into a caption; repo moved to `~/Dev/Colours/Palette`.
 - **28 Jul 2026 — 0.49.x.** JSON export changed from copy to file download (0.49.0) — the JSON is dragged into the companion WHL Gradient tool; file renamed `whl_colours_palette.html` with matching export prefix (0.49.1); cell minimum height raised 48 → 64 → 100px (0.49.2–0.49.3); Safari overscroll bounce disabled (0.49.4); live deployment to whl.ltd/colours/palette/ established with the always-latest rule.
 - **29 Jul 2026 — 0.49.5.** The licensed Berkeley Mono web font added as a served `@font-face` fallback: Safari's fingerprinting protection hides user-installed fonts, so the `local()` binding alone had stopped reaching Berkeley on the live site.
-- **29 Jul 2026 — 0.50.0.** The handoff's open questions worked through and closed with the owner: chroma slider capped at the sRGB ceiling 0.32 (P3 declined as impractical); house default chroma set to 0.150; SVG cells made square (100×100) as the canonical form; selection exports named by their selection; approximate print references (device CMYK always, PT via the git-ignored `pantone.json` sidecar) added to the JSON export; the pure-layer test suite added (`tests/run.sh`, 25 assertions).
+- **29 Jul 2026 — 0.50.0.** The handoff's open questions worked through and closed with the owner: chroma slider capped at the sRGB ceiling 0.32 (P3 declined as impractical); house default chroma set to 0.150 (superseded by 0.51.0's Gradient sync); SVG cells made square (100×100) as the canonical form; selection exports named by their selection; approximate print references (device CMYK always, PT via the git-ignored `pantone.json` sidecar) added to the JSON export; the pure-layer test suite added (`tests/run.sh`).
+- **29 Jul 2026 — 0.51.0.** SVG cells titled — vector text at the screen's density, in the cell's ink, the no-text rule of 4 Jun revised by the owner; selection filename suffixes shortened to `_h<deg>` / `_l<pct>`; house defaults set to **18 / 0.120 / 28** — the settings behind the Gradient's baked default swatch, verified cell-for-cell identical, closing the default-sync question in the reverse direction (Palette adopted the proven standard rather than Gradient re-baking).
 
-### Open questions — resolved with the owner, 29 Jul 2026 (0.50.0)
+### Open questions — resolved with the owner, 29 Jul 2026 (0.50.0–0.51.0)
 
 1. **Chroma ceiling vs colour space** → slider capped at the sRGB ceiling **0.32**; output stays sRGB hex. Display-P3 declined: the palette must be practical on any screen and in print, on macOS, Windows and Linux alike (§4.3).
-2. **House default chroma** → **0.150**, formally decided (§3.1).
+2. **House default chroma** → 0.150 at first, then **0.120 as part of the 18 / 0.120 / 28 house default** synced with the Gradient's baked swatch (§3.1).
 3. **SVG cell ratio** → **square (100×100) is canonical**; the fill-to-window screen is a live view (§3.5).
-4. **Selection export filenames** → the selection is encoded: `_hue<deg>` for a column, `_light<pct>` for a row (§3.5).
+4. **Selection export filenames** → the selection is encoded: `_h<deg>` for a column, `_l<pct>` for a row (§3.5).
 5. **CMYK / PT hints** → added to the JSON export as approximate print references; PT via the git-ignored `pantone.json` sidecar the owner supplies (§3.5).
-6. **Test suite** → `tests/run.sh` covers the pure layer with 25 assertions (§5).
-7. **Default palette sync with Gradient** → Gradient already bakes `swatch/default.json`; refreshing it to the new house default is logged as [wanghailei/gradient#5](https://github.com/wanghailei/gradient/issues/5).
+6. **Test suite** → `tests/run.sh` covers the pure layer (§5).
+7. **Default palette sync with Gradient** → resolved by adoption: Palette's defaults are now the settings the Gradient's `swatch/default.json` was baked from, verified identical — [wanghailei/gradient#5](https://github.com/wanghailei/gradient/issues/5) closed accordingly.

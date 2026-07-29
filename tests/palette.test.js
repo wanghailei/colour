@@ -87,13 +87,20 @@ test( "chroma breathes: full at mid-tones, gentle at the extremes", () => {
 // ---------------------------------------------------------------
 // House defaults — the considered settings a fresh visitor gets
 // ---------------------------------------------------------------
-test( "default chroma is the house 0.150", () => {
-	assert.equal( defaultSettings.chroma, 0.15 )
-} )
-test( "default grid is 20 lightness steps by 12 hues from 25°", () => {
-	assert.equal( defaultSettings.lightnessCount, 20 )
-	assert.equal( defaultSettings.hueCount, 12 )
+test( "house defaults match the Gradient's baked default swatch", () => {
+	assert.equal( defaultSettings.lightnessCount, 18 )
+	assert.equal( defaultSettings.chroma, 0.12 )
+	assert.equal( defaultSettings.hueCount, 28 )
 	assert.equal( defaultSettings.hueStart, 25 )
+} )
+test( "house defaults reproduce the baked default swatch exactly", () => {
+	// fixtures lifted from the Gradient's swatch/default.json (hue 25);
+	// verified identical across the full grid on 29 Jul 2026
+	Object.assign( settings, defaultSettings )
+	const steps = gatherPalette().families[0].steps
+	assert.equal( steps["5"], "#030000" )
+	assert.equal( steps["11"], "#0f0000" )
+	assert.equal( steps["16"], "#220001" )
 } )
 
 // ---------------------------------------------------------------
@@ -125,19 +132,37 @@ test( "no sidecar table, no PT reference", () => {
 // ---------------------------------------------------------------
 test( "filename states the three settings", () => {
 	Object.assign( settings, defaultSettings )
-	assert.equal( exportName( "json" ), "whl_colours_palette_20_0.150_12.json" )
+	assert.equal( exportName( "json" ), "whl_colours_palette_18_0.120_28.json" )
 } )
 test( "a column selection is named by its hue", () => {
 	Object.assign( settings, defaultSettings )
 	selection = { kind: "column", index: 0 }
-	assert.equal( svgCells( buildFamilies() ).name, "whl_colours_palette_20_0.150_12_hue25.svg" )
+	assert.equal( svgCells( buildFamilies() ).name, "whl_colours_palette_18_0.120_28_h25.svg" )
 	selection = null
 } )
 test( "a row selection is named by its lightness", () => {
 	Object.assign( settings, defaultSettings )
 	selection = { kind: "row", index: 12 }
-	assert.equal( svgCells( buildFamilies() ).name, "whl_colours_palette_20_0.150_12_light62.svg" )
+	assert.equal( svgCells( buildFamilies() ).name, "whl_colours_palette_18_0.120_28_l68.svg" )
 	selection = null
+} )
+test( "SVG colour cells carry their title and hex, in their ink", () => {
+	Object.assign( settings, defaultSettings )
+	selection = null
+	const families = buildFamilies()
+	const svg = svgRectangles( svgCells( families ).cells )
+	const sample = families[0].cells[10]
+	assert.ok( svg.includes( ">" + sample.title + "<" ) )
+	assert.ok( svg.includes( ">" + sample.hex.toUpperCase() + "<" ) )
+	assert.ok( svg.includes( `fill="${inkFor( sample.hex )}"` ) )
+	assert.ok( /font-family="Berkeley Mono/.test( svg ) )
+} )
+test( "SVG frame rows stay textless", () => {
+	Object.assign( settings, defaultSettings )
+	selection = null
+	const svg = svgRectangles( svgCells( buildFamilies() ).cells )
+	const textCount = ( svg.match( /<text /g ) || [] ).length
+	assert.equal( textCount, settings.hueCount * settings.lightnessCount * 2 )
 } )
 test( "SVG cells are square — the canonical swatch form", () => {
 	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456" }, { column: 1, row: 0, hex: "#654321" } ] )
@@ -157,7 +182,7 @@ test( "full swatch SVG covers the grid plus the black and white rows", () => {
 test( "JSON keeps the Gradient contract: steps are plain hex strings", () => {
 	Object.assign( settings, defaultSettings )
 	const palette = gatherPalette()
-	assert.equal( palette.families.length, 12 )
+	assert.equal( palette.families.length, 28 )
 	palette.families.forEach( ( family ) => {
 		Object.values( family.steps ).forEach( ( value ) => {
 			assert.match( value, /^#[0-9a-f]{6}$/ )
