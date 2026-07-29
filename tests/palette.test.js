@@ -204,10 +204,8 @@ test( "SVG colour cells carry title, hex, cmyk and pt, in their ink", () => {
 	assert.ok( svg.includes( ">" + sample.title + "<" ) )
 	assert.ok( svg.includes( ">" + sample.hex.toUpperCase() + "<" ) )
 	assert.ok( svg.includes( ">" + approximateCmyk( sample.hex ) + "<" ) )
-	// PC and PU render as separate lines — one code per line, no overflow
-	const [ coatedCode, uncoatedCode ] = ptCode( sample.hex ).split( " " )
-	assert.ok( svg.includes( ">" + coatedCode + "<" ) )
-	assert.ok( svg.includes( ">" + uncoatedCode + "<" ) )
+	// numeric-only codes fit side by side: one PT line, PC then PU
+	assert.ok( svg.includes( ">" + ptCode( sample.hex ) + "<" ) )
 	assert.ok( svg.includes( `fill="${inkFor( sample.hex )}"` ) )
 	ptTable = null
 } )
@@ -227,12 +225,12 @@ test( "SVG text mirrors the UI: 12px, weight 400, left 16, tops 12/31/50/69", ()
 		const x = Number( tag.match( / x="(\d+)"/ )[1] )
 		assert.equal( ( x - 16 ) % 150, 0, "left margin 16 inside a 150 cell: " + tag )
 	} )
-	// baselines: UI tops 12/31/50/69/88 + 10 ascent = 22/41/60/79/98 within
-	// every cell — PC and PU each take their own line so no code can
-	// overflow the cell's right edge
+	// baselines: UI tops 12/31/50/69 + 10 ascent = 22/41/60/79 within every
+	// cell — numeric-only PT codes (max PC9999 PU9999, 13 chars ≈ 110 of
+	// 150 units) fit on one line
 	texts.forEach( ( tag ) => {
 		const y = Number( tag.match( / y="(\d+)"/ )[1] )
-		assert.ok( [ 22, 41, 60, 79, 98 ].includes( y % 150 ), "baseline on the UI grid: " + tag )
+		assert.ok( [ 22, 41, 60, 79 ].includes( y % 150 ), "baseline on the UI grid: " + tag )
 	} )
 	ptTable = null
 } )
