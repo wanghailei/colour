@@ -106,10 +106,10 @@ test( "house defaults reproduce the baked default swatch exactly", () => {
 // ---------------------------------------------------------------
 // Print references — approximations, clearly derived
 // ---------------------------------------------------------------
-test( "device CMYK of white, black, red", () => {
-	assert.deepEqual( approximateCmyk( "#ffffff" ), [ 0, 0, 0, 0 ] )
-	assert.deepEqual( approximateCmyk( "#000000" ), [ 0, 0, 0, 100 ] )
-	assert.deepEqual( approximateCmyk( "#ff0000" ), [ 0, 100, 100, 0 ] )
+test( "device CMYK reads as one compact code", () => {
+	assert.equal( approximateCmyk( "#ffffff" ), "C0 M0 Y0 K0" )
+	assert.equal( approximateCmyk( "#000000" ), "C0 M0 Y0 K100" )
+	assert.equal( approximateCmyk( "#ff0000" ), "C0 M100 Y100 K0" )
 } )
 test( "hex to OKLab: white is L1 a0 b0", () => {
 	const lab = hexToOklab( "#ffffff" )
@@ -117,14 +117,22 @@ test( "hex to OKLab: white is L1 a0 b0", () => {
 	assert.ok( Math.abs( lab.a ) < 1e-3 )
 	assert.ok( Math.abs( lab.b ) < 1e-3 )
 } )
-test( "nearest PT reference picks the closest table entry", () => {
-	ptTable = { "PT RED": "#ff0000", "PT BLUE": "#0000ff" }
-	assert.equal( nearestPtReference( "#f80402" ), "PT RED" )
-	assert.equal( nearestPtReference( "#0004f8" ), "PT BLUE" )
+test( "PT code carries the nearest coated and uncoated entries", () => {
+	ptTable = {
+		coated: { "7621": "#ff0000", "2935": "#0000ff" },
+		uncoated: { "8509": "#fe0202" },
+	}
+	assert.equal( ptCode( "#f80402" ), "PC7621 PU8509" )
+	assert.equal( ptCode( "#0004f8" ), "PC2935 PU8509" )
 	ptTable = null
 } )
-test( "no sidecar table, no PT reference", () => {
-	assert.equal( nearestPtReference( "#ff0000" ), null )
+test( "a single-substrate table yields a single PT code", () => {
+	ptTable = { coated: { "186": "#c8102e" } }
+	assert.equal( ptCode( "#c00f2c" ), "PC186" )
+	ptTable = null
+} )
+test( "no sidecar table, no PT code", () => {
+	assert.equal( ptCode( "#ff0000" ), null )
 } )
 
 // ---------------------------------------------------------------
@@ -189,14 +197,14 @@ test( "JSON keeps the Gradient contract: steps are plain hex strings", () => {
 		} )
 	} )
 } )
-test( "JSON carries approximate print references per step", () => {
+test( "JSON carries approximate print references per step, one format", () => {
 	Object.assign( settings, defaultSettings )
-	ptTable = { "PT RED": "#ff0000" }
+	ptTable = { coated: { "186": "#c8102e" }, uncoated: { "485": "#da291c" } }
 	const palette = gatherPalette()
 	const family = palette.families[0]
 	Object.values( family.print ).forEach( ( reference ) => {
-		assert.equal( reference.cmyk.length, 4 )
-		assert.equal( typeof reference.pt, "string" )
+		assert.match( reference.cmyk, /^C\d{1,3} M\d{1,3} Y\d{1,3} K\d{1,3}$/ )
+		assert.match( reference.pt, /^PC\S+ PU\S+$/ )
 	} )
 	ptTable = null
 } )
