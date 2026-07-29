@@ -134,6 +134,33 @@ test( "a single-substrate table yields a single PT code", () => {
 test( "no sidecar table, no PT code", () => {
 	assert.equal( ptCode( "#ff0000" ), null )
 } )
+test( "a dropped PT table parses and normalises", () => {
+	const table = parsePtTable( '{ "coated": { "186": "#C8102E" }, "uncoated": { "485": "#da291c" }, "junk": 1 }' )
+	assert.deepEqual( table, { coated: { "186": "#C8102E" }, uncoated: { "485": "#da291c" } } )
+} )
+test( "a single-substrate drop still parses", () => {
+	const table = parsePtTable( '{ "coated": { "186": "#C8102E" } }' )
+	assert.deepEqual( table, { coated: { "186": "#C8102E" } } )
+} )
+test( "garbage and shapeless drops are rejected", () => {
+	assert.equal( parsePtTable( "not json" ), null )
+	assert.equal( parsePtTable( '{ "a": "#ff0000" }' ), null )
+	assert.equal( parsePtTable( '{ "coated": { "186": 42 } }' ), null )
+	assert.equal( parsePtTable( '[1,2]' ), null )
+} )
+test( "the SVG embeds the font when the page holds its bytes", () => {
+	fontDataUri = "data:font/woff2;base64,AAAA"
+	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456", title: "5% 0.033 25" } ] )
+	assert.ok( svg.includes( "<style>" ) )
+	assert.ok( svg.includes( "@font-face" ) )
+	assert.ok( svg.includes( "'Berkeley Mono Variable'" ) )
+	assert.ok( svg.includes( fontDataUri ) )
+	fontDataUri = null
+} )
+test( "without font bytes the SVG carries no style block", () => {
+	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456", title: "5% 0.033 25" } ] )
+	assert.ok( !svg.includes( "<style>" ) )
+} )
 
 // ---------------------------------------------------------------
 // Exports — derived from the model, filenames state their origin
