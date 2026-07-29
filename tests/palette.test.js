@@ -148,6 +148,17 @@ test( "garbage and shapeless drops are rejected", () => {
 	assert.equal( parsePtTable( '{ "coated": { "186": 42 } }' ), null )
 	assert.equal( parsePtTable( '[1,2]' ), null )
 } )
+test( "named colours are excluded — numeric codes only", () => {
+	// the owner's rule: a PT reference without a number is not shown;
+	// what does not correspond is not forced to correspond
+	const table = parsePtTable(
+		'{ "coated": { "186": "#c8102e", "neutral-black": "#222222", "orange-021": "#fe5000" }, "uncoated": { "reflex-blue": "#001489" } }'
+	)
+	assert.deepEqual( table, { coated: { "186": "#c8102e" } } )
+	ptTable = table
+	assert.equal( ptCode( "#222222" ), "PC186" )
+	ptTable = null
+} )
 test( "the SVG names its fonts the way design apps expect", () => {
 	// PostScript name first (what Affinity and friends match), family
 	// names after (what browsers match), no quotes anywhere — Affinity
