@@ -148,18 +148,11 @@ test( "garbage and shapeless drops are rejected", () => {
 	assert.equal( parsePtTable( '{ "coated": { "186": 42 } }' ), null )
 	assert.equal( parsePtTable( '[1,2]' ), null )
 } )
-test( "the SVG embeds the font when the page holds its bytes", () => {
-	fontDataUri = "data:font/woff2;base64,AAAA"
-	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456", title: "5% 0.033 25" } ] )
-	assert.ok( svg.includes( "<style>" ) )
-	assert.ok( svg.includes( "@font-face" ) )
-	assert.ok( svg.includes( "'Berkeley Mono Variable'" ) )
-	assert.ok( svg.includes( fontDataUri ) )
-	fontDataUri = null
-} )
-test( "without font bytes the SVG carries no style block", () => {
+test( "the SVG names its fonts like CSS — no embedding, no style block", () => {
 	const svg = svgRectangles( [ { column: 0, row: 0, hex: "#123456", title: "5% 0.033 25" } ] )
 	assert.ok( !svg.includes( "<style>" ) )
+	assert.ok( !svg.includes( "@font-face" ) )
+	assert.ok( svg.includes( `font-family="'Berkeley Mono Variable', 'Berkeley Mono', 'IBM Plex Mono', 'JetBrains Mono', monospace"` ) )
 } )
 
 // ---------------------------------------------------------------
